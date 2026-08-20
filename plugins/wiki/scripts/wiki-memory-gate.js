@@ -30,7 +30,7 @@ async function main() {
   if (typeof filePath !== "string" || !filePath) process.exit(0);
 
   // 结尾补 / 让「目录本身」也能命中；normPath 统一斜线与大小写
-  const norm = normPath(filePath) + (filePath.endsWith("/") || filePath.endsWith("\\") ? "" : "");
+  const norm = normPath(filePath) + (filePath.endsWith("/") || filePath.endsWith("\\") ? "" : "/");
   if (!MEMORY_PATH_RE.test(norm)) process.exit(0);
 
   process.stdout.write(

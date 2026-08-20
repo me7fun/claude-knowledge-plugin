@@ -31,7 +31,8 @@ const DEFAULT_CONFIG = {
   // 进度/待办目录，相对专案根
   stateDir: ".claude/state",
   // lint 排除清单（相对 knowledgeRoot；目录以 / 结尾表示整棵排除）
-  excludeFromLint: ["ASSET_INDEX.md", "GAME_LIST.md", "wip/", "_archive/"],
+  // 预设只排通用的草稿/封存目录；专案特有档名请写在各专案 .claude/wiki.config.json
+  excludeFromLint: ["wip/", "_archive/"],
   // 写入政策：require_approval = 知识页写入前须提案并经用户同意
   writePolicy: "require_approval",
 };
@@ -52,7 +53,8 @@ function loadConfig(root) {
  * 支持：key: value、key: [a, b]、块列表（- item）。回 null 表示没有 frontmatter。
  */
 function parseFrontmatter(text) {
-  const t = text.replace(/^﻿/, "");
+  // 容忍 CRLF（Windows 工具改档常转 \r\n；不正规化的话 (.*)$ 吃不到带 \r 的行、整个 key 被跳过）
+  const t = text.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
   if (!t.startsWith("---")) return null;
   const end = t.indexOf("\n---", 3);
   if (end === -1) return null;

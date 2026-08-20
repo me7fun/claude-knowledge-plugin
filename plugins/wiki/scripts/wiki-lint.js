@@ -190,11 +190,23 @@ function findMemoryDir(root) {
   } catch (_) {
     return null;
   }
+  // 先做精确比对（专案完整路径的编码名：: 与斜线各替换成 -），
+  // 避免宽松比对在 monorepo 下误中「目录名也包含本专案名」的 submodule 专案目录。
+  const expected = root.replace(/[:\\/]/g, "-").toLowerCase();
   for (const e of entries) {
-    if (e.toLowerCase().includes(base)) {
+    if (e.toLowerCase() === expected) {
       const mem = path.join(projectsDir, e, "memory");
       if (fs.existsSync(mem)) return mem;
     }
+  }
+  // 精确没中才退回宽松包含比对（编码规则可能随版本变），取「目录名最短」的命中
+  // （主专案的编码名必短于其 submodule 的编码名）。
+  const loose = entries
+    .filter((e) => e.toLowerCase().includes(base))
+    .sort((a, b) => a.length - b.length);
+  for (const e of loose) {
+    const mem = path.join(projectsDir, e, "memory");
+    if (fs.existsSync(mem)) return mem;
   }
   return null;
 }
