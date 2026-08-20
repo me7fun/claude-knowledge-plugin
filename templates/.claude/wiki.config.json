@@ -1,0 +1,6 @@
+{
+  "knowledgeRoot": "docs/knowledge",
+  "stateDir": ".claude/state",
+  "excludeFromLint": [],
+  "writePolicy": "require_approval"
+}

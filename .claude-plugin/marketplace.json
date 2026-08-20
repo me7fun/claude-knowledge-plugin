@@ -1,0 +1,16 @@
+{
+  "name": "claude-knowledge-plugin",
+  "owner": {
+    "name": "Mickey"
+  },
+  "metadata": {
+    "description": "本机 marketplace：项目知识库机制（wiki plugin）"
+  },
+  "plugins": [
+    {
+      "name": "wiki",
+      "source": "./plugins/wiki",
+      "description": "项目知识库机制：OKF 格式知识页 + 两层索引 + commit 闸门 + 结构 lint + memory 写入闸门 + /wiki:review 盘点"
+    }
+  ]
+}
