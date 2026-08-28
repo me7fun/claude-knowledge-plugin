@@ -35,6 +35,9 @@ const DEFAULT_CONFIG = {
   excludeFromLint: ["wip/", "_archive/"],
   // 写入政策：require_approval = 知识页写入前须提案并经用户同意
   writePolicy: "require_approval",
+  // 提案措辞风格：plain = 每条提案先给一句白话「这是什么、为何要记」（预设，方便非专家判断）；
+  // terse = 只给术语/精简（专家想关掉白话时用）
+  proposalStyle: "plain",
 };
 
 /** 读专案侧设定（.claude/wiki.config.json），缺档或坏档一律回预设（fail-safe） */

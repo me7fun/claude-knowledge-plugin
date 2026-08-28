@@ -78,6 +78,13 @@ function main() {
         `进度/待办不进知识库，写 ${cfg.stateDir}/。memory 已停用（只留 feedback 类），不要往 memory 写任何东西。`
     );
   }
+  if (cfg.proposalStyle !== "terse") {
+    parts.push(
+      "Wiki 提案措辞：**每条提案先给一句白话**（这是什么、为何值得记、不记会怎样），" +
+        "用户不一定是该领域专家、也可能在手机上——别只丢术语/代码/档名让人猜。" +
+        "（专家想关掉白话：wiki.config.json 设 proposalStyle: terse。）"
+    );
+  }
 
   // ---- 3. 进度目录摘要 ----
   try {

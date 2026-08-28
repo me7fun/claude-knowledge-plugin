@@ -15,6 +15,29 @@ Claude Code plugin：项目知识库机制（wiki）——让「记录知识」�
 - **`/wiki:review` skill**：手动盘点本轮对话，产出「Wiki 建议」提案清单。
 - **搜索脚本**：tag 与全文搜索知识页，agent 与人都能用。
 
+## 为什么不直接用 Claude 内建 memory
+
+Claude Code 内建 memory（`~/.claude/projects/<项目>/memory/`）能记事，但拿来当项目知识库会越用越乱：四类记忆混在一个目录靠命名自律、索引每次开场全量载入、只存在自己机器上、agent 想写就写没人把关。本 plugin 用 `PreToolUse` 闸门把它关掉（只留与用户合作规则的 feedback 类），把「记忆」搬回 repo：
+
+| | 内建 memory | 本 plugin 知识库 |
+|---|---|---|
+| 存在哪 | 个人机器的 `~/.claude/…`，不进 git，换机器就没了 | 项目 repo（`docs/knowledge/`），clone 即得 |
+| 谁看得到 | 只有自己 | 全团队；PR 可 review、`git log` 可回溯 |
+| 谁能写 | agent 自主写，没人把关 | 预设 `require_approval`，每一条都经人批准 |
+| 开场 token 成本 | `MEMORY.md` 索引每次全量载入，随条目数线性膨胀 | 只注入主题层摘要（几行），页面用到才读，成本固定 |
+| 结构 | user/feedback/project/reference 四类混放，靠命名自律 | 两层索引＋OKF frontmatter（type/tags/sources/verified），lint 机械稽核 |
+| 时效 | 没有过期概念，旧记忆永远载入 | `stale_after`＋`status: deprecated`，lint 到期警告 |
+| 进度类内容 | 和知识混在一起，任务结束也留着 | 分到 `.claude/state/`，任务完结即删 |
+| 搜索 | 靠 agent 自己翻 | tag／全文搜索脚本，人与 agent 共用 |
+
+其他刻意的取舍：
+
+- **闸门跨项目生效**：从 A 项目的对话写 B 项目的 memory 同样会被挡——知识只有一份正本，没有例外。
+- **fail-soft**：任何 hook 出错都静默放行（输出 `{}`），config 缺失时全部回落预设值——plugin 自己坏了也不会挡住你的 session。
+- **秘密值永不落地**：凭证、token、内部 URL、连线字串一律只写路径或占位符，是写入判准的硬规则，优先于其他一切。
+- **提案先讲人话**：预设 `proposalStyle: plain`，每条「Wiki 建议」先给一句白话（这是什么、为何值得记、不记会怎样）——非该领域专家、或在手机上批提案也能判断。
+- **零依赖、零服务**：纯 Node 脚本，没有第三方套件、向量库、后台服务；一份 plugin 服务多个项目，各项目只多一个 `wiki.config.json`。
+
 ## 运作流程
 
 1. 开新对话 → 主题索引摘要自动进 context。
@@ -59,10 +82,10 @@ claude-knowledge-plugin/
 
 ```bash
 # 1. 取得本 repo（clone 或复制到本机任意位置）
-git clone <repo-url> C:/Work/SideProject/claude-knowledge-plugin
+git clone <repo-url> <本机路径>/claude-knowledge-plugin
 
 # 2. 注册为本机 marketplace（写入 ~/.claude/settings.json，一台机器做一次）
-claude plugin marketplace add C:/Work/SideProject/claude-knowledge-plugin
+claude plugin marketplace add <本机路径>/claude-knowledge-plugin
 
 # 3. 在目标项目根目录下安装（--scope local：写入该项目
 #    .claude/settings.local.json，不进 git，每人自装）
@@ -88,6 +111,7 @@ claude plugin install wiki@claude-knowledge-plugin --scope local
 | `stateDir` | 任务进度/待办目录（不进 git、任务完结即删；SessionStart 会注入其档案清单摘要） | `.claude/state` |
 | `excludeFromLint` | lint 跳过的路径前缀（相对 `knowledgeRoot`）。知识库独占一个目录时留空即可 | `[]` |
 | `writePolicy` | 知识写入政策。目前实作 `require_approval`（所有写入先提案、经用户同意才动笔） | `require_approval` |
+| `proposalStyle` | 提案措辞风格。`plain`＝每条「Wiki 建议」先给一句白话（这是什么、为何值得记、不记会怎样），方便非该领域专家或在手机上的用户判断；`terse`＝只给术语/精简（专家想关掉白话时用） | `plain` |
 
 档案缺失或解析失败时全部字段回落预设值（fail-safe，不会挡 session）。
 
@@ -104,7 +128,11 @@ claude plugin install wiki@claude-knowledge-plugin --scope local
 
 ## 什么值得记
 
-一句话判准：**代码能告诉你的，不要写**——知识库的价值在代码说不出的东西：设计的「为什么」、跨档且无编译期信号的隐性耦合、会被反复踩的坑根因。宁少而准，一条有凭有据胜过五条空泛。完整判准与页格式规格见手册 `plugins/wiki/skills/review/reference.md` §二、§三。
+一句话判准：**代码能告诉你的，不要写**——知识库的价值在代码说不出的东西：设计的「为什么」、跨档且无编译期信号的隐性耦合、会被反复踩的坑根因。宁少而准，一条有凭有据胜过五条空泛。
+
+**记录前先分辨个案还是架构**：换一个项目/场景这条还成立吗？成立（通用不变量）才记，抽到不变量那层再写；只对当前个案成立、改完就不再犯的（某款某处摆错），沉降到该对象自己的文档、不占知识库。心智模型：「武器一律用手拿」是不变量（记），「拿剑闪红光」是个案配置（不记）。
+
+完整判准、个案/架构过滤与页格式规格见手册 `plugins/wiki/skills/review/reference.md` §二、§三。
 
 ## 更新（pull 到新版或改了 plugin 内容之后）
 
@@ -131,8 +159,8 @@ claude plugin update wiki@claude-knowledge-plugin --scope local
 ## 验证
 
 ```bash
-claude plugin validate C:/Work/SideProject/claude-knowledge-plugin              # marketplace
-claude plugin validate C:/Work/SideProject/claude-knowledge-plugin/plugins/wiki # plugin
+claude plugin validate <本机路径>/claude-knowledge-plugin              # marketplace
+claude plugin validate <本机路径>/claude-knowledge-plugin/plugins/wiki # plugin
 ```
 
 ## 设计笔记
