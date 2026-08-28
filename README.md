@@ -103,6 +103,15 @@ claude plugin install wiki@claude-knowledge-plugin --scope local
 3. `.gitignore` 加 `.claude/state/` 与 `docs/wip/`。
 4. 重启 session → 开场看到「主题索引」注入即生效。
 
+### 私有接线（知识只给自己看、不进 repo）
+
+templates 预设是**团队共享**情境（接线档与知识库都进 git）。个人专案、或不想让 clone 这个 repo 的人看到 wiki 接线时，改成：
+
+- `CLAUDE-section.md` 的段落并入 **`CLAUDE.local.md`**（Claude Code 会一并载入）而不是 CLAUDE.md。
+- 忽略规则写 **`.git/info/exclude`**（只对本机生效、不进 git）而不是 `.gitignore`，把 `CLAUDE.local.md`、`.claude/wiki.config.json`、`docs/knowledge/`、`.claude/state/`、`docs/wip/` 都列进去。
+
+判准一句话：**wiki 的知识要不要给 clone 这个 repo 的人看？要 → CLAUDE.md＋.gitignore；不要 → CLAUDE.local.md＋.git/info/exclude。** 移除脚本两种模式都认得。
+
 ### wiki.config.json 字段说明
 
 | 字段 | 作用 | 预设 |
@@ -164,10 +173,10 @@ claude plugin update wiki@claude-knowledge-plugin --scope local
 | 会处理 | 不会碰 |
 |---|---|
 | `.claude/wiki.config.json`（整档） | 知识页本身 |
-| CLAUDE.md 的「知识体系入口」段（只删该段，列行号） | 已列过页的 `index.md` / `index-*.md` |
-| `.gitignore` 的 `.claude/state/`、`docs/wip/` 行（只删这几行，列行号） | 使用者自己的 `.claude/state/*.md`、`docs/wip/*` 草稿 |
+| CLAUDE.md / CLAUDE.local.md 的「知识体系入口」段（只删该段，列行号） | 已列过页的 `index.md` / `index-*.md` |
+| `.gitignore` / `.git/info/exclude` 的 `.claude/state/`、`docs/wip/`、`.claude/wiki.config.json` 行（只删这几行，列行号） | 使用者自己的 `.claude/state/*.md`、`docs/wip/*` 草稿 |
 | templates 的示例/说明档（`_onboarding-demo.md`、`_about-wip.md`、忘了删的 `CLAUDE-section.md`） | 其他任何档案 |
-| 从没列过任何页、目录下也没知识页的空索引档 | |
+| 从没列过任何页、目录下也没知识页的空索引档 | 忽略档里盖住「会留下来的内容」的行（`docs/knowledge/`、`CLAUDE.local.md`） |
 
 ```bash
 # 1. 预览（预设即 dry-run）：列出预计删除的档案与要删的行号＋内容，不动任何档案

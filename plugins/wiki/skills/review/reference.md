@@ -205,6 +205,10 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/wiki-search.js" -t <tag> "<关键字>"
 
 6. 重启 session（或 `/reload-plugins`）→ 开场应看到主题索引注入。
 
+> **私有接线**（知识只给自己看、不进 repo）：步骤 3 改并入 `CLAUDE.local.md`，步骤 4 改写
+> `.git/info/exclude`（连同 `CLAUDE.local.md`、`.claude/wiki.config.json`、`docs/knowledge/`）。
+> 判准：wiki 知识要不要给 clone 这个 repo 的人看？要 → CLAUDE.md；不要 → CLAUDE.local.md。
+
 **移除（反接线）**：`node <plugin>/scripts/wiki-uninstall.js` 预览（dry-run）→ 确认后加 `--yes`
 → `claude plugin uninstall wiki@claude-knowledge-plugin --scope local`。脚本只清 plugin 放进去的
 设定（config、CLAUDE.md 段、.gitignore 行、templates 示例档、空索引），知识页与使用者自己的

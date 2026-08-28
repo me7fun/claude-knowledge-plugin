@@ -1,7 +1,7 @@
 {
   "name": "wiki",
   "displayName": "Project Wiki",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "项目知识库机制：OKF 格式知识页 + 两层索引 + commit 闸门 + 结构 lint + memory 写入闸门",
   "author": {
     "name": "Mickey"

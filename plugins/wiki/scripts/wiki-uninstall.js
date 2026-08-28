@@ -9,9 +9,10 @@
  *
  * 会处理（只限 plugin 接线时放进去的东西）：
  *   - .claude/wiki.config.json                        整档删除
- *   - CLAUDE.md 的「知识体系入口」段                  只删该段（<!-- wiki-plugin:start/end --> 标记优先，
+ *   - CLAUDE.md / CLAUDE.local.md 的「知识体系入口」段 只删该段（<!-- wiki-plugin:start/end --> 标记优先，
  *                                                     无标记则以标题比对到下一个同级标题为止），列行号
- *   - .gitignore 的 `.claude/state/`、`docs/wip/` 行  只删这几行，列行号
+ *   - .gitignore / .git/info/exclude 的 `.claude/state/`、`docs/wip/`、`.claude/wiki.config.json` 行
+ *                                                     只删这几行，列行号
  *   - <stateDir>/_onboarding-demo.md                  整档删除（templates 示例档）
  *   - docs/wip/_about-wip.md                          整档删除（templates 说明档）
  *   - CLAUDE-section.md（接线后忘了删的 templates 档）整档删除
@@ -30,7 +31,7 @@ const { projectRoot, loadConfig, parseIndexTable } = require("./wiki-lib");
 const START_MARK = "<!-- wiki-plugin:start -->";
 const END_MARK = "<!-- wiki-plugin:end -->";
 const SECTION_HEADING_RE = /^##\s+知[识識]体系入口/;
-const GITIGNORE_TARGETS = [".claude/state", "docs/wip"];
+const GITIGNORE_TARGETS = [".claude/state", "docs/wip", ".claude/wiki.config.json"];
 
 // ---------- 参数 ----------
 const argv = process.argv.slice(2);
@@ -71,9 +72,11 @@ function addDelete(file, why) {
 // ---------- 1. wiki.config.json ----------
 addDelete(path.join(root, ".claude", "wiki.config.json"), "plugin 的专案侧设定");
 
-// ---------- 2. CLAUDE.md 的知识体系入口段 ----------
-(function planClaudeMd() {
-  const file = path.join(root, "CLAUDE.md");
+// ---------- 2. CLAUDE.md / CLAUDE.local.md 的知识体系入口段 ----------
+// 团队共享接线放 CLAUDE.md；个人/私有接线放 CLAUDE.local.md——两个都查
+for (const name of ["CLAUDE.md", "CLAUDE.local.md"]) planClaudeMd(name);
+function planClaudeMd(name) {
+  const file = path.join(root, name);
   if (!exists(file)) return;
   const { lines } = readLines(file);
   let start = -1;
@@ -87,7 +90,7 @@ addDelete(path.join(root, ".claude", "wiki.config.json"), "plugin 的专案侧�
   } else {
     const hi = lines.findIndex((l) => SECTION_HEADING_RE.test(l.trim()));
     if (hi === -1) {
-      if (si !== -1 || ei !== -1) notes.push("CLAUDE.md：只找到单边的 wiki-plugin 标记，无法安全定位段落，跳过");
+      if (si !== -1 || ei !== -1) notes.push(`${name}：只找到单边的 wiki-plugin 标记，无法安全定位段落，跳过`);
       return;
     }
     start = hi;
@@ -108,11 +111,15 @@ addDelete(path.join(root, ".claude", "wiki.config.json"), "plugin 的专案侧�
     why: "plugin 接线时并入的常驻规则段",
     ranges: [{ start, end, lines: lines.slice(start, end + 1) }],
   });
-})();
+}
 
-// ---------- 3. .gitignore 的 state / wip 行 ----------
-(function planGitignore() {
-  const file = path.join(root, ".gitignore");
+// ---------- 3. .gitignore / .git/info/exclude 的忽略行 ----------
+// 团队共享接线写 .gitignore；个人/私有接线写 .git/info/exclude——两个都查。
+// 只删「plugin 设定类」的行（state、wip、wiki.config.json）；docs/knowledge/、CLAUDE.local.md
+// 这类盖住「会留下来的内容」的行不动，否则移除后知识页会突然冒进 git status。
+for (const name of [".gitignore", path.join(".git", "info", "exclude")]) planIgnoreFile(name);
+function planIgnoreFile(name) {
+  const file = path.join(root, name);
   if (!exists(file)) return;
   const { lines } = readLines(file);
   const norm = (s) => s.trim().replace(/\\/g, "/").replace(/^\.\//, "").replace(/^\//, "").replace(/\/+$/, "");
@@ -129,7 +136,7 @@ addDelete(path.join(root, ".claude", "wiki.config.json"), "plugin 的专案侧�
     why: "plugin 接线时加入的忽略规则",
     ranges: hits.map((i) => ({ start: i, end: i, lines: [lines[i]] })),
   });
-})();
+}
 
 // ---------- 4. templates 示例/说明档 ----------
 addDelete(path.join(root, cfg.stateDir, "_onboarding-demo.md"), "templates 的进度目录示例档");
