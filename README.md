@@ -99,7 +99,7 @@ claude plugin install wiki@claude-knowledge-plugin --scope local
 完整步骤见手册 `plugins/wiki/skills/review/reference.md` §九，摘要：
 
 1. 把 `templates/` 底下的内容整包复制到项目根目录（`.claude/` 与 `docs/` 就位）——**复制即用，不需要改任何内容**（知识库预置 4 个通用主题，之后按专案需要改名/增删；state 与 wip 各带一个示例/说明档）。
-2. 把 `CLAUDE-section.md` 的段落并入专案 CLAUDE.md 后删除该档——这是给 AI 的**常驻**规则（知识库/进度/草稿各放哪、规则手册在哪）；templates 的示例档读完会删，常驻规则必须住在 CLAUDE.md。
+2. 把 `CLAUDE-section.md` 的段落（连同 `<!-- wiki-plugin:start/end -->` 两行标记，移除脚本靠它定位）并入专案 CLAUDE.md 后删除该档——这是给 AI 的**常驻**规则（知识库/进度/草稿各放哪、规则手册在哪）；templates 的示例档读完会删，常驻规则必须住在 CLAUDE.md。
 3. `.gitignore` 加 `.claude/state/` 与 `docs/wip/`。
 4. 重启 session → 开场看到「主题索引」注入即生效。
 
@@ -155,6 +155,31 @@ claude plugin update wiki@claude-knowledge-plugin --scope local
 ```
 
 开发期密集迭代可改用 `claude --plugin-dir <本 repo>/plugins/wiki` 直读原位，免 bump 免 update。
+
+## 移除（反接线）
+
+想停用本 plugin 时，先跑移除脚本清掉接线时放进专案的**设定**，再卸载 plugin 本体。脚本**只碰 plugin 自己放进去的东西，使用者产出的内容一律不动**：
+
+| 会处理 | 不会碰 |
+|---|---|
+| `.claude/wiki.config.json`（整档） | 知识页本身 |
+| CLAUDE.md 的「知识体系入口」段（只删该段，列行号） | 已列过页的 `index.md` / `index-*.md` |
+| `.gitignore` 的 `.claude/state/`、`docs/wip/` 行（只删这几行，列行号） | 使用者自己的 `.claude/state/*.md`、`docs/wip/*` 草稿 |
+| templates 的示例/说明档（`_onboarding-demo.md`、`_about-wip.md`、忘了删的 `CLAUDE-section.md`） | 其他任何档案 |
+| 从没列过任何页、目录下也没知识页的空索引档 | |
+
+```bash
+# 1. 预览（预设即 dry-run）：列出预计删除的档案与要删的行号＋内容，不动任何档案
+node ~/.claude/plugins/cache/claude-knowledge-plugin/wiki/<version>/scripts/wiki-uninstall.js
+
+# 2. 看过清单确认后，加 --yes 真正执行
+node ~/.claude/plugins/cache/claude-knowledge-plugin/wiki/<version>/scripts/wiki-uninstall.js --yes
+
+# 3. 卸载 plugin 本体（settings.local.json 的 enabledPlugins 与快取）
+claude plugin uninstall wiki@claude-knowledge-plugin --scope local
+```
+
+> 脚本路径也可用本 repo 的 `plugins/wiki/scripts/wiki-uninstall.js`；不在专案根执行时加 `--root <专案根>`。CLAUDE.md 段落靠 `<!-- wiki-plugin:start/end -->` 标记定位（templates 已内建），旧接线没标记时退回用标题比对到下一个同级标题为止——预览时请看一眼行号范围是否正确。
 
 ## 验证
 

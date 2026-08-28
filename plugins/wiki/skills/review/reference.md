@@ -191,7 +191,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/wiki-search.js" -t <tag> "<关键字>"
    > 非知识文件物理分开——这样 `excludeFromLint` 可以留空，lint 范围即整棵目录。
 
 2. 建 `<knowledgeRoot>/index.md`（主题表，可从 0 主题开始）。
-3. 把 templates 的 `CLAUDE-section.md` 段落并入专案 CLAUDE.md（给 AI 的常驻规则：
+3. 把 templates 的 `CLAUDE-section.md` 段落**连同 `<!-- wiki-plugin:start/end -->` 标记**并入专案 CLAUDE.md（给 AI 的常驻规则：
    知识库/进度/草稿各放哪、手册在哪——templates 示例档会删，常驻规则必须住在 CLAUDE.md）。
 4. `.gitignore` 加 state 目录（与草稿区 `docs/wip/`，若采用该惯例——wip 属专案层
    惯例而非 plugin 机制，见 templates 内说明档）。
@@ -204,6 +204,11 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/wiki-search.js" -t <tag> "<关键字>"
    ```
 
 6. 重启 session（或 `/reload-plugins`）→ 开场应看到主题索引注入。
+
+**移除（反接线）**：`node <plugin>/scripts/wiki-uninstall.js` 预览（dry-run）→ 确认后加 `--yes`
+→ `claude plugin uninstall wiki@claude-knowledge-plugin --scope local`。脚本只清 plugin 放进去的
+设定（config、CLAUDE.md 段、.gitignore 行、templates 示例档、空索引），知识页与使用者自己的
+state/wip 档一律不碰。
 
 ## 十、派工时的知识传递（subagent / teammate）
 

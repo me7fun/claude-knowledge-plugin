@@ -1,10 +1,11 @@
 # 知识体系入口段（并入专案 CLAUDE.md 后删除本档）
 
 templates 的示例/说明档读完会删，AI 的**常驻**规则必须住在专案 CLAUDE.md——把下方
-分隔线后的段落贴进专案 CLAUDE.md（路径与专案实际设定不同时按实调整），然后删除本档。
+分隔线后的段落**连同 `<!-- wiki-plugin:start/end -->` 两行标记**贴进专案 CLAUDE.md（路径与专案实际设定不同时按实调整），然后删除本档。标记是给移除脚本（`wiki-uninstall.js`）定位用的，别拿掉。
 
 ---
 
+<!-- wiki-plugin:start -->
 ## 知识体系入口（常驻；规则细节在手册，不在本档）
 
 - **专案知识库**＝`docs/knowledge/`（markdown＋frontmatter，两层索引）。入口：
@@ -18,3 +19,4 @@ templates 的示例/说明档读完会删，AI 的**常驻**规则必须住在�
   草稿即删。
 - **memory 停用**：知识写 docs/knowledge/、进度写 .claude/state/，不写 memory（plugin
   闸门会挡）。
+<!-- wiki-plugin:end -->
