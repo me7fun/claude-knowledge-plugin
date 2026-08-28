@@ -139,7 +139,8 @@ claude plugin install wiki@claude-knowledge-plugin --scope local
 一键脚本（自动 bump patch 版本＋刷新 marketplace＋逐项目 update）：
 
 ```bash
-node update.js   # 要更新的项目列表写在 projects.local.txt（一行一个，不进 git）
+node update.js             # 要更新的项目列表写在 projects.local.txt（一行一个，不进 git）
+node update.js --no-bump   # 正式发版后只同步快取、不改版本
 ```
 
 等效的手动步骤：

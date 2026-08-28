@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // 一键发布：bump patch 版本 -> marketplace update -> 各项目 plugin update
-// 用法：node update.js
+// 用法：node update.js            # bump patch 版本后发布
+//       node update.js --no-bump  # 不改版本，只刷新 marketplace 与各项目快取（正式发版后同步用）
 // 要更新哪些项目，写在 projects.local.txt（一行一个项目根目录，不进 git）
 
 'use strict';
@@ -18,14 +19,20 @@ function run(cmd, cwd) {
   execSync(cmd, { stdio: 'inherit', shell: true, cwd: cwd || ROOT });
 }
 
-// 1. bump patch 版本
+// 1. bump patch 版本（--no-bump 时沿用现版）
+const NO_BUMP = process.argv.includes('--no-bump');
 const manifest = JSON.parse(fs.readFileSync(MANIFEST, 'utf8'));
-const parts = manifest.version.split('.').map(Number);
-parts[2] += 1;
-const newVersion = parts.join('.');
-console.log(`version: ${manifest.version} -> ${newVersion}`);
-manifest.version = newVersion;
-fs.writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + '\n');
+let newVersion = manifest.version;
+if (NO_BUMP) {
+  console.log(`version: ${manifest.version}（--no-bump，不改版本）`);
+} else {
+  const parts = manifest.version.split('.').map(Number);
+  parts[2] += 1;
+  newVersion = parts.join('.');
+  console.log(`version: ${manifest.version} -> ${newVersion}`);
+  manifest.version = newVersion;
+  fs.writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + '\n');
+}
 
 // 2. 刷新 marketplace（全机一次）
 run('claude plugin marketplace update claude-knowledge-plugin');
