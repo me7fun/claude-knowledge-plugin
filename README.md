@@ -82,7 +82,7 @@ claude-knowledge-plugin/
 
 ```bash
 # 1. 取得本 repo（clone 或复制到本机任意位置）
-git clone <repo-url> <本机路径>/claude-knowledge-plugin
+git clone https://github.com/me7fun/claude-knowledge-plugin.git <本机路径>/claude-knowledge-plugin
 
 # 2. 注册为本机 marketplace（写入 ~/.claude/settings.json，一台机器做一次）
 claude plugin marketplace add <本机路径>/claude-knowledge-plugin
