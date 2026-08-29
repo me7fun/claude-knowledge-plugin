@@ -1,7 +1,7 @@
-# 知识体系入口段（并入专案 CLAUDE.md 后删除本档）
+# 知识体系入口段（wiki-setup.js 的复制来源；手动接线时并入 CLAUDE.md 或 CLAUDE.local.md 后删除本档）
 
 templates 的示例/说明档读完会删，AI 的**常驻**规则必须住在专案 CLAUDE.md——把下方
-分隔线后的段落**连同 `<!-- wiki-plugin:start/end -->` 两行标记**贴进专案 CLAUDE.md（路径与专案实际设定不同时按实调整），然后删除本档。标记是给移除脚本（`wiki-uninstall.js`）定位用的，别拿掉。
+分隔线后的段落**连同 `<!-- wiki-plugin:start/end -->` 两行标记**贴进专案 CLAUDE.md（团队共享）或 CLAUDE.local.md（只留本机）——正常情况由 `wiki-setup.js --mode shared|local` 代劳，不必手动——路径与专案实际设定不同时按实调整，然后删除本档。标记是给移除脚本（`wiki-uninstall.js`）定位用的，别拿掉。
 
 ---
 

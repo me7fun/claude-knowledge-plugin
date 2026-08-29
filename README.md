@@ -53,14 +53,6 @@ Claude Code 内建 memory（`~/.claude/projects/<项目>/memory/`）能记事，
 claude-knowledge-plugin/
 ├── .claude-plugin/marketplace.json      # 本机 marketplace 定义
 ├── update.js                            # 一键发布脚本（见「更新」）
-├── templates/                           # 新项目接线骨架：镜像项目根目录，整包复制即用
-│   ├── CLAUDE-section.md                #   给 AI 的常驻规则段 → 并入专案 CLAUDE.md 后删除
-│   ├── .claude/
-│   │   ├── wiki.config.json             #   plugin 的项目侧设定
-│   │   └── state/_onboarding-demo.md    #   进度目录示例（AI 读完无进度可接手，即会删除）
-│   └── docs/
-│       ├── knowledge/                   #   知识库：index.md 主题表（预置 4 个通用主题）＋4 个子索引
-│       └── wip/_about-wip.md            #   草稿区惯例说明（可留可删）
 └── plugins/wiki/
     ├── .claude-plugin/plugin.json       # plugin manifest（name: wiki, version）
     ├── hooks/hooks.json                 # 4 个 hook 的注册
@@ -70,7 +62,17 @@ claude-knowledge-plugin/
     │   ├── wiki-stop.js                 #   commit 闸门：侦测 git commit → Stop 时要求评估标记
     │   ├── wiki-memory-gate.js          #   PreToolUse：拦截写入 Claude memory（memory 已停用）
     │   ├── wiki-lint.js                 #   结构稽核（frontmatter/两层索引一致/断链/过期）
+    │   ├── wiki-setup.js                #   专案接线：--mode shared|local，预设 dry-run（见「项目接线」）
+    │   ├── wiki-uninstall.js            #   反接线：依 wiring 记录移除专案侧设定（见「移除」）
     │   └── wiki-search.js               #   知识页搜索（-t tag 或全文）
+    ├── templates/                       # 接线样板（wiki-setup.js 的复制来源）：镜像专案根目录
+    │   ├── CLAUDE-section.md            #   给 AI 的常驻规则段（含 wiki-plugin:start/end 标记）
+    │   ├── .claude/
+    │   │   ├── wiki.config.json         #   plugin 的项目侧设定
+    │   │   └── state/_onboarding-demo.md#   进度目录示例
+    │   └── docs/
+    │       ├── knowledge/               #   知识库：index.md 主题表（预置 4 个通用主题）＋4 个子索引
+    │       └── wip/_about-wip.md        #   草稿区惯例说明
     └── skills/review/
         ├── SKILL.md                     # /wiki:review 盘点流程
         └── reference.md                 # 📖 手册正本：写什么/格式/写入政策/索引维护/新项目接线
@@ -96,21 +98,27 @@ claude plugin install wiki@claude-knowledge-plugin --scope local
 
 ## 项目接线（每个新项目一次）
 
-完整步骤见手册 `plugins/wiki/skills/review/reference.md` §九，摘要：
+先决定一件事：**wiki 的知识要不要给 clone 这个 repo 的人看？**
 
-1. 把 `templates/` 底下的内容整包复制到项目根目录（`.claude/` 与 `docs/` 就位）——**复制即用，不需要改任何内容**（知识库预置 4 个通用主题，之后按专案需要改名/增删；state 与 wip 各带一个示例/说明档）。
-2. 把 `CLAUDE-section.md` 的段落（连同 `<!-- wiki-plugin:start/end -->` 两行标记，移除脚本靠它定位）并入专案 CLAUDE.md 后删除该档——这是给 AI 的**常驻**规则（知识库/进度/草稿各放哪、规则手册在哪）；templates 的示例档读完会删，常驻规则必须住在 CLAUDE.md。
-3. `.gitignore` 加 `.claude/state/` 与 `docs/wip/`。
-4. 重启 session → 开场看到「主题索引」注入即生效。
+| | `--mode shared`（团队共享） | `--mode local`（只留本机） |
+|---|---|---|
+| 常驻规则段写到 | `CLAUDE.md` | `CLAUDE.local.md` |
+| 忽略规则写到 | `.gitignore`（只排 state 与草稿区） | `.git/info/exclude`（整套接线＋知识库都排除） |
+| 知识库进 git？ | 是，同事 clone 即得 | 否，只有你这台机器有 |
 
-### 私有接线（知识只给自己看、不进 repo）
+```bash
+# 在专案根目录下执行（plugin 装好后脚本在快取里；也可用本 repo 的 plugins/wiki/scripts/ 路径）
+node ~/.claude/plugins/cache/claude-knowledge-plugin/wiki/<version>/scripts/wiki-setup.js --mode shared        # 预览
+node ~/.claude/plugins/cache/claude-knowledge-plugin/wiki/<version>/scripts/wiki-setup.js --mode shared --yes  # 执行
+```
 
-templates 预设是**团队共享**情境（接线档与知识库都进 git）。个人专案、或不想让 clone 这个 repo 的人看到 wiki 接线时，改成：
+脚本预设 dry-run：列出每个要新增的档案、要追加到 CLAUDE.md／忽略档的行号与内容，看过再加 `--yes`。已存在的档案一律跳过不覆盖，重跑安全。接线方式会记在 `wiki.config.json` 的 `wiring` 字段，**移除脚本据此决定清哪边**；两种模式互斥——已用 local 接线再跑 shared 会被拒绝，要换模式先跑 `wiki-uninstall.js`。
 
-- `CLAUDE-section.md` 的段落并入 **`CLAUDE.local.md`**（Claude Code 会一并载入）而不是 CLAUDE.md。
-- 忽略规则写 **`.git/info/exclude`**（只对本机生效、不进 git）而不是 `.gitignore`，把 `CLAUDE.local.md`、`.claude/wiki.config.json`、`docs/knowledge/`、`.claude/state/`、`docs/wip/` 都列进去。
+shared 模式会顺手清掉 `.git/info/exclude` 里之前 local 接线留下的 `docs/knowledge/`、`.claude/wiki.config.json`、state/wip 行（否则知识库会被静默排除、永远进不了 git）——这是会删行的动作，预览时会列出。
 
-判准一句话：**wiki 的知识要不要给 clone 这个 repo 的人看？要 → CLAUDE.md＋.gitignore；不要 → CLAUDE.local.md＋.git/info/exclude。** 移除脚本两种模式都认得。
+接线后重启 session → 开场看到「主题索引」注入即生效。知识库预置 4 个通用主题，之后按专案需要改名/增删；state 与 wip 各带一个示例/说明档，读完可删。
+
+> 手动接线（不用脚本）也行：把 `plugins/wiki/templates/` 整包复制到专案根、`CLAUDE-section.md` 的段落连同 `<!-- wiki-plugin:start/end -->` 标记并入 CLAUDE.md（或 CLAUDE.local.md）后删档、忽略规则自己加。但手动接线没有 `wiring` 记录，移除脚本会退回两边都查。
 
 ### wiki.config.json 字段说明
 
@@ -120,6 +128,7 @@ templates 预设是**团队共享**情境（接线档与知识库都进 git）�
 | `stateDir` | 任务进度/待办目录（不进 git、任务完结即删；SessionStart 会注入其档案清单摘要） | `.claude/state` |
 | `excludeFromLint` | lint 跳过的路径前缀（相对 `knowledgeRoot`）。知识库独占一个目录时留空即可 | `[]` |
 | `writePolicy` | 知识写入政策。目前实作 `require_approval`（所有写入先提案、经用户同意才动笔） | `require_approval` |
+| `wiring` | 接线方式，`shared`（CLAUDE.md＋.gitignore）或 `local`（CLAUDE.local.md＋.git/info/exclude），由 `wiki-setup.js` 写入；`wiki-uninstall.js` 据此决定清哪边。没有此字段（手动接线）时移除脚本两边都查 | （无） |
 | `proposalStyle` | 提案措辞风格。`plain`＝每条「Wiki 建议」先给一句白话（这是什么、为何值得记、不记会怎样），方便非该领域专家或在手机上的用户判断；`terse`＝只给术语/精简（专家想关掉白话时用） | `plain` |
 
 档案缺失或解析失败时全部字段回落预设值（fail-safe，不会挡 session）。
@@ -168,15 +177,15 @@ claude plugin update wiki@claude-knowledge-plugin --scope local
 
 ## 移除（反接线）
 
-想停用本 plugin 时，先跑移除脚本清掉接线时放进专案的**设定**，再卸载 plugin 本体。脚本**只碰 plugin 自己放进去的东西，使用者产出的内容一律不动**：
+想停用本 plugin 时，先跑移除脚本清掉接线时放进专案的**设定**，再卸载 plugin 本体。脚本读 `wiki.config.json` 的 `wiring` 决定清哪边（shared → CLAUDE.md＋.gitignore；local → CLAUDE.local.md＋.git/info/exclude；没记录则两边都查），且**只碰 plugin 自己放进去的东西，使用者产出的内容一律不动**：
 
 | 会处理 | 不会碰 |
 |---|---|
 | `.claude/wiki.config.json`（整档） | 知识页本身 |
-| CLAUDE.md / CLAUDE.local.md 的「知识体系入口」段（只删该段，列行号） | 已列过页的 `index.md` / `index-*.md` |
-| `.gitignore` / `.git/info/exclude` 的 `.claude/state/`、`docs/wip/`、`.claude/wiki.config.json` 行（只删这几行，列行号） | 使用者自己的 `.claude/state/*.md`、`docs/wip/*` 草稿 |
+| CLAUDE.md 或 CLAUDE.local.md 的「知识体系入口」段（只删该段，列行号；local 模式下删完整档已空则整档删） | 已列过页的 `index.md` / `index-*.md` |
+| `.gitignore` 或 `.git/info/exclude` 里 setup 加的行（只删这几行，列行号） | 使用者自己的 `.claude/state/*.md`、`docs/wip/*` 草稿 |
 | templates 的示例/说明档（`_onboarding-demo.md`、`_about-wip.md`、忘了删的 `CLAUDE-section.md`） | 其他任何档案 |
-| 从没列过任何页、目录下也没知识页的空索引档 | 忽略档里盖住「会留下来的内容」的行（`docs/knowledge/`、`CLAUDE.local.md`） |
+| 从没列过任何页、目录下也没知识页的空索引档 | 忽略档里盖住「会留下来的内容」的行：`.claude/state/`、`docs/wip/` 在目录仍有你自己的档案时保留；exclude 的 `docs/knowledge/`、`CLAUDE.local.md` 只在对应内容也清空时才删 |
 
 ```bash
 # 1. 预览（预设即 dry-run）：列出预计删除的档案与要删的行号＋内容，不动任何档案
@@ -189,7 +198,7 @@ node ~/.claude/plugins/cache/claude-knowledge-plugin/wiki/<version>/scripts/wiki
 claude plugin uninstall wiki@claude-knowledge-plugin --scope local
 ```
 
-> 脚本路径也可用本 repo 的 `plugins/wiki/scripts/wiki-uninstall.js`；不在专案根执行时加 `--root <专案根>`。CLAUDE.md 段落靠 `<!-- wiki-plugin:start/end -->` 标记定位（templates 已内建），旧接线没标记时退回用标题比对到下一个同级标题为止——预览时请看一眼行号范围是否正确。
+> 脚本路径也可用本 repo 的 `plugins/wiki/scripts/wiki-uninstall.js`；不在专案根执行时加 `--root <专案根>`。规则段靠 `<!-- wiki-plugin:start/end -->` 标记定位，旧接线没标记时退回用标题比对到下一个同级标题为止——预览时请看一眼行号范围是否正确。
 
 ## 验证
 

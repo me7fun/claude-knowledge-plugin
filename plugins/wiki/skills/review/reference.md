@@ -173,46 +173,32 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/wiki-search.js" -t <tag> "<关键字>"
 
 ## 九、专案接线（新专案启用步骤）
 
-> 最快路径：把 plugin repo `templates/` 的内容整包复制到专案根目录（即完成下列 1–3
-> 的档案部分），再做 4–6。
-
-1. 专案根建 `.claude/wiki.config.json`：
-
-   ```json
-   {
-     "knowledgeRoot": "docs/knowledge",
-     "stateDir": ".claude/state",
-     "excludeFromLint": [],
-     "writePolicy": "require_approval"
-   }
-   ```
-
-   > 建议给知识库一个专属子目录（如 `docs/knowledge/`），与目录查表、草稿等
-   > 非知识文件物理分开——这样 `excludeFromLint` 可以留空，lint 范围即整棵目录。
-
-2. 建 `<knowledgeRoot>/index.md`（主题表，可从 0 主题开始）。
-3. 把 templates 的 `CLAUDE-section.md` 段落**连同 `<!-- wiki-plugin:start/end -->` 标记**并入专案 CLAUDE.md（给 AI 的常驻规则：
-   知识库/进度/草稿各放哪、手册在哪——templates 示例档会删，常驻规则必须住在 CLAUDE.md）。
-4. `.gitignore` 加 state 目录（与草稿区 `docs/wip/`，若采用该惯例——wip 属专案层
-   惯例而非 plugin 机制，见 templates 内说明档）。
-5. 注册 marketplace 并安装（个人 scope 用 `--scope local`，写进
-   `settings.local.json` 不进 git）：
+1. 决定接线模式：**wiki 知识要不要给 clone 这个 repo 的人看？**
+   要 → `shared`（CLAUDE.md＋.gitignore，知识库进 git）；不要 → `local`（CLAUDE.local.md＋
+   `.git/info/exclude`，整套只留本机）。
+2. 在专案根执行 `node <plugin>/scripts/wiki-setup.js --mode <shared|local>`（预设 dry-run，
+   看过清单再加 `--yes`）。脚本会：建 `.claude/wiki.config.json`（含 `wiring` 记录）、复制
+   templates 的索引/示例档、把 `CLAUDE-section.md` 段落追加到 CLAUDE.md 或 CLAUDE.local.md、
+   写忽略规则。已存在的档案一律跳过；两种模式互斥，要换先跑 uninstall。shared 模式会顺手
+   清掉 exclude 里 local 接线留下的排除行（否则知识库进不了 git），预览会列出。
+3. 注册 marketplace 并安装（个人 scope 用 `--scope local`，写进 `settings.local.json` 不进 git）：
 
    ```bash
    claude plugin marketplace add <claude-knowledge-plugin 路径或 repo>
    claude plugin install wiki@claude-knowledge-plugin --scope local
    ```
 
-6. 重启 session（或 `/reload-plugins`）→ 开场应看到主题索引注入。
+4. 重启 session（或 `/reload-plugins`）→ 开场应看到主题索引注入。
 
-> **私有接线**（知识只给自己看、不进 repo）：步骤 3 改并入 `CLAUDE.local.md`，步骤 4 改写
-> `.git/info/exclude`（连同 `CLAUDE.local.md`、`.claude/wiki.config.json`、`docs/knowledge/`）。
-> 判准：wiki 知识要不要给 clone 这个 repo 的人看？要 → CLAUDE.md；不要 → CLAUDE.local.md。
+> 建议给知识库一个专属子目录（templates 预设 `docs/knowledge/`），与目录查表、草稿等
+> 非知识文件物理分开——这样 `excludeFromLint` 可以留空，lint 范围即整棵目录。
+> 手动接线（不用脚本）也可以：复制 templates、并入段落（连同 `<!-- wiki-plugin:start/end -->`
+> 标记）、自己加忽略规则；但没有 `wiring` 记录，移除时脚本会两边都查。
 
-**移除（反接线）**：`node <plugin>/scripts/wiki-uninstall.js` 预览（dry-run）→ 确认后加 `--yes`
-→ `claude plugin uninstall wiki@claude-knowledge-plugin --scope local`。脚本只清 plugin 放进去的
-设定（config、CLAUDE.md 段、.gitignore 行、templates 示例档、空索引），知识页与使用者自己的
-state/wip 档一律不碰。
+**移除（反接线）**：`node <plugin>/scripts/wiki-uninstall.js` 预览 → 确认后加 `--yes`
+→ `claude plugin uninstall wiki@claude-knowledge-plugin --scope local`。脚本依 `wiring` 决定清
+CLAUDE.md＋.gitignore 还是 CLAUDE.local.md＋.git/info/exclude；只清 plugin 放进去的设定（config、
+规则段、忽略行、templates 示例档、空索引），知识页与使用者自己的 state/wip 档一律不碰。
 
 ## 十、派工时的知识传递（subagent / teammate）
 
