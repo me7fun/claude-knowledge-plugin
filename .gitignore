@@ -1,1 +1,5 @@
 projects.local.txt
+
+# 本機私有：gh 帳號強制規則 hook（不上傳）
+.claude/settings.local.json
+.claude/hooks/gh-guard.js
