@@ -87,10 +87,27 @@ verified:                # 选填。谁验证过——只记真实发生的验�
 
 政策在专案 `wiki.config.json` 的 `writePolicy`，SessionStart 注入当前值：
 
-- **`require_approval`（预设）**：先提案（「Wiki 建议」格式：目标页、要记什么、
-  来源），等用户明确同意才写。缺档、坏档、非法值一律视为 require_approval
+- **`require_approval`（预设）**：先查重、再提案（「Wiki 建议」格式：目标页、要记什么、
+  来源、查重），等用户明确同意才写。缺档、坏档、非法值一律视为 require_approval
   （fail-closed）。
-- **`open`**：可直接写，仍须同步维护索引并输出评估标记。
+- **`open`**：可直接写，仍须先查重、同步维护索引并输出评估标记。
+
+**提案前先查重（两种政策都适用）**：发现值得记的知识的**当下**就查——手边正好有相关
+档案时成本最低，拖到收工才凭记忆列清单最容易漏。
+
+1. 每条候选跑 `wiki-search.js <关键字...>`（多个关键字任一命中即列出，把同义词/别名一起丢）。
+2. **读命中的小节**。索引只列到页，已有知识常是某页里的一个小节——只看档名/索引不算查过。
+3. 完全涵盖 → 不提；部分涵盖 → 改提「扩写 X.md〈小节〉」只提增量；没命中 → 才提新页。
+4. 提案带「查重」行：`搜了哪些关键字 → 命中哪页哪节（或无命中）→ 结论`。用户靠这行
+   确认查过；没有这行的提案视为没查。
+
+这条规则在 SessionStart 注入、Stop 闸门提示、专案 CLAUDE.md 入口段都有一句话版本——
+agent 不一定会载入本手册，流程必须出现在它实际会读到的地方。
+
+**事后抓漏：`/wiki:audit`**。提案前查重漏了没有人会知道，所以另有重复盘点：通读知识库，
+列出矛盾／重复／重叠的小节，经同意后合并，并在 state 目录的 `wiki-audit-log.txt` 记一行。
+清干净之后，下次盘点再出现的重复数＝这段期间事前查重漏掉的数量。建议知识库有一定
+写入量后定期手动跑（例如每月，或 plugin 的查重规则改动后隔一段时间）。
 
 ## 五、评估标记（commit 闸门）
 
@@ -122,8 +139,8 @@ commit 频率低的专案（如「未明说不 commit」纪律），闸门覆盖
 
 ### 情境 1：新增页
 
-0. 先查重：跑 wiki-search 与相关 `index-<slug>.md`，已有页涵盖 → 扩写该页
-   （加节、更新 frontmatter），不开新页。
+0. 先查重（流程见「四、写入政策」）：跑 wiki-search 并读命中的小节、看相关
+   `index-<slug>.md`，已有页涵盖 → 扩写该页（加节、更新 frontmatter），不开新页。
 1. 决定所属主题；没有合适主题 → 先走情境 2。
 2. 建档，frontmatter 至少含 `type`（建议补 title/description/tags/sources）。
 3. 在 `index-<slug>.md` 按字母序插一行。
@@ -163,10 +180,16 @@ commit 频率低的专案（如「未明说不 commit」纪律），闸门覆盖
 ## 八、搜索
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/wiki-search.js" "<关键字>"       # 全文
+node "${CLAUDE_PLUGIN_ROOT}/scripts/wiki-search.js" <关键字...>      # 全文
 node "${CLAUDE_PLUGIN_ROOT}/scripts/wiki-search.js" -t <tag>          # tag 过滤
-node "${CLAUDE_PLUGIN_ROOT}/scripts/wiki-search.js" -t <tag> "<关键字>"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/wiki-search.js" -t <tag> <关键字...>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/wiki-search.js" --outline [-t <tag>]   # 小节地图
 ```
+
+多个关键字＝任一命中即算（OR），命中越多关键字的页排越前；要比对含空白的整句，用引号
+包成一个参数。输出每页的命中行，按所属小节标题分组并带行号（每页最多列 12 行）。
+`--outline` 不搜索，改列每页所有小节标题（行号＋行数）——即时算出、不需维护，
+想看「某页已经有哪些小节」或做 `/wiki:audit` 时用。
 
 永远排除 index*.md 与设定档 `excludeFromLint` 清单。最后手段用
 `rg "<关键字>" <knowledgeRoot>/ -g '!index*.md'`。

@@ -13,7 +13,9 @@ Claude Code plugin：项目知识库机制（wiki）——让「记录知识」�
 - **memory 闸门**：`PreToolUse` hook 拦截写入 Claude 内建 memory 的行为，强制知识只有一份正本（在 repo 里，而不是散在个人机器的 memory 中）。
 - **两层索引**：`index.md` 只列主题（含关键字供语义匹配），`index-<slug>.md` 才列该主题的页清单——索引常驻 context 的成本固定，不随知识库长大而膨胀。
 - **`/wiki:review` skill**：手动盘点本轮对话，产出「Wiki 建议」提案清单。
-- **搜索脚本**：tag 与全文搜索知识页，agent 与人都能用。
+- **提案前查重**：开场提示、Stop 闸门、CLAUDE.md 入口段都要求先搜索并读命中的小节，已有就改提扩写；每条提案带「查重」行（搜了什么 → 命中哪页哪节 → 结论），有没有查一眼可见。
+- **`/wiki:audit` skill**：事后抓漏——通读知识库，列出矛盾／重复／重叠的小节，经同意后合并，并留一行记录供下次比较。
+- **搜索脚本**：tag 与全文搜索知识页（多关键字任一命中、列出命中小节与行号），`--outline` 列出每页小节地图；agent 与人都能用。
 
 ## 为什么不直接用 Claude 内建 memory
 
@@ -42,7 +44,7 @@ Claude Code 内建 memory（`~/.claude/projects/<项目>/memory/`）能记事，
 
 1. 开新对话 → 主题索引摘要自动进 context。
 2. agent 动工前按关键字命中主题 → 读该主题子索引与相关页，带着既有知识开工。
-3. 工作中发现值得记的知识 → 以「Wiki 建议」格式提案（目标页、要记什么、来源）。
+3. 工作中发现值得记的知识 → 当下先查重（wiki-search＋读命中小节），已有就改提扩写；再以「Wiki 建议」格式提案（目标页、要记什么、来源、查重）。
 4. 执行过 `git commit` → 收尾时 Stop 闸门强制评估：提案，或明确说明为何无需更新。
 5. 用户批准 → agent 写入知识页并同步两层索引；lint 兜底抓漏。
 6. 页面历史交给 git（`git log <page>.md`），不维护变更日志档。
@@ -64,7 +66,7 @@ claude-knowledge-plugin/
     │   ├── wiki-lint.js                 #   结构稽核（frontmatter/两层索引一致/断链/过期）
     │   ├── wiki-setup.js                #   专案接线：--mode shared|local，预设 dry-run（见「项目接线」）
     │   ├── wiki-uninstall.js            #   反接线：依 wiring 记录移除专案侧设定（见「移除」）
-    │   └── wiki-search.js               #   知识页搜索（-t tag 或全文）
+    │   └── wiki-search.js               #   知识页搜索（-t tag、全文、--outline 小节地图）
     ├── templates/                       # 接线样板（wiki-setup.js 的复制来源）：镜像专案根目录
     │   ├── CLAUDE-section.md            #   给 AI 的常驻规则段（含 wiki-plugin:start/end 标记）
     │   ├── .claude/
@@ -73,9 +75,11 @@ claude-knowledge-plugin/
     │   └── docs/
     │       ├── knowledge/               #   知识库：index.md 主题表（预置 4 个通用主题）＋4 个子索引
     │       └── wip/_about-wip.md        #   草稿区惯例说明
-    └── skills/review/
-        ├── SKILL.md                     # /wiki:review 盘点流程
-        └── reference.md                 # 📖 手册正本：写什么/格式/写入政策/索引维护/新项目接线
+    └── skills/
+        ├── review/
+        │   ├── SKILL.md                 # /wiki:review 盘点流程（回顾 → 过滤 → 查重 → 提案）
+        │   └── reference.md             # 📖 手册正本：写什么/格式/写入政策/索引维护/新项目接线
+        └── audit/SKILL.md               # /wiki:audit 重复盘点（事后抓漏）
 ```
 
 ## 安装
@@ -140,9 +144,10 @@ shared 模式会顺手清掉 `.git/info/exclude` 里之前 local 接线留下的
 | 每次新对话开场 | 自动注入：主题索引摘要＋进行中任务目录＋lint 警告（若有） |
 | 执行过 `git commit` 后 | Stop 闸门要求本轮回复附评估标记（`Wiki 建议: …` 提案，或 `无需 wiki 更新: <理由>`） |
 | 手动 `/wiki:review` | 盘点本轮对话有没有值得记的知识，输出提案清单 |
+| 手动 `/wiki:audit` | 通读知识库找矛盾／重复／重叠的小节，输出清单，同意后合并 |
 | 任何写入 Claude memory 的尝试 | PreToolUse 直接 deny 并指引改写到知识库/state |
 | 手动稽核 | `node plugins/wiki/scripts/wiki-lint.js`（SessionStart 也会自动跑） |
-| 找知识 | `node plugins/wiki/scripts/wiki-search.js "<关键字>"`（`-t <tag>` 按标签） |
+| 找知识／提案前查重 | `node plugins/wiki/scripts/wiki-search.js <关键字...>`（多个关键字任一命中，列出命中小节与行号；`-t <tag>` 按标签） |
 
 ## 什么值得记
 

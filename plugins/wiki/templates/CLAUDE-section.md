@@ -13,6 +13,9 @@ templates 的示例/说明档读完会删，AI 的**常驻**规则必须住在�
 - **记录规则手册**＝wiki plugin 的 `plugins/wiki/skills/review/reference.md`——什么该记/
   不该记、frontmatter 规格、写入政策（预设 require_approval：先提案经用户同意才写）、
   索引维护 checklist。
+- **提案前先查重**：发现值得记的知识 → 先跑 wiki plugin 的 `scripts/wiki-search.js <关键字...>`
+  并读命中的小节（只看档名/索引不算查过）；已有页/小节涵盖 → 改提「扩写该页该节」。
+  每条「Wiki 建议」须带「查重」行（搜了什么 → 命中哪页哪节 → 结论）。
 - **任务进度/待办**＝`.claude/state/`（不进 git、任务完结即删档）。开场先看这里知道做到哪；
   一个任务一档。
 - **文件草稿**＝`docs/wip/`（不进 git、不受 lint 管）。定稿后走「Wiki 建议」提案进知识库，

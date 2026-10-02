@@ -40,7 +40,7 @@ async function main() {
         permissionDecision: "deny",
         permissionDecisionReason:
           "memory 已停用（知识系统 Q1 方案 A）。这份内容改写到正确位置：" +
-          "专案知识 → 知识库（先以「Wiki 建议」提案，经同意后写入 docs/ 并同步索引）；" +
+          "专案知识 → 知识库（先用 wiki-search 查重，再以「Wiki 建议」提案，经同意后写入 docs/ 并同步索引）；" +
           "任务进度/待办 → .claude/state/；" +
           "与用户的合作规则（feedback 类）→ 先询问用户是否要记、记在哪。",
       },
